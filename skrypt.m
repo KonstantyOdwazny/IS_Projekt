@@ -20,6 +20,30 @@ sigmay = var(y);
 avgy = mean(y);
 [ruu, tauu] = xcorr(u','biased');
 [ryy, tauy] = xcorr(y,'biased');
+ruu = ruu(7500:end);
+% figure()
+% plot(n*Tp, ryy)
 
-figure()
-plot(n*Tp, ryy)
+%metoda nieparametryczna
+M = 10;
+k = 1:1:2000;
+um = u(1:M);
+Ruu = zeros(M,M);
+for i=1:M
+    for j=1:M
+        if( i > j)
+            Ruu(i,j) = ruu(i);
+        else
+            if (j-i ~= 0)
+                Ruu(i,j) = ruu(j-i);
+            else
+                Ruu(i,j) = ruu(1);
+            end
+        end
+    end
+end
+
+            
+               
+            
+                
