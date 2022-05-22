@@ -1,0 +1,2 @@
+Bierzemy pod uwagę tylko y2 (drugie wyjście) czyli:
+Column 4: output T
