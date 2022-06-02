@@ -21,49 +21,35 @@ plot(t,y)
 title('y')
 %% Metoda korelacyjna
 
-[ruu, tauu] = xcorr(u','biased');
-[ryy, tauy] = xcorr(y,'biased');
-[ryu, tauuy] = xcorr(y,u,'biased');
-ruu = ruu(7500:end);
-ryu = ryu(7500:end);
-% figure()
-% plot(n*Tp, ryy)
+% [ruu, tauu] = xcorr(u,'biased');
+% [ryy, tauy] = xcorr(y,'biased');
+% [ryu, tauuy] = xcorr(y,u,'biased');
+% ruu = ruu(7500:end);
+% ryu = ryu(7500:end);
 
-%metoda nieparametryczna
-M = 100;
-
-ry = ryu(1:M);
-um = u(1:M);
+M = 50;
 Ruu = zeros(M,M);
+ryu = zeros(M,1);
+tn = 0:1:M-1;
 for i=1:M
     for j=1:M
-        if( i > j)
-            Ruu(i,j) = ruu(i-j+1);
-        else
-            if (j-i ~= 0)
-                Ruu(i,j) = ruu(j-i+1);
-            else
-                Ruu(i,j) = ruu(1);
-            end
-        end
+        Ruu(i,j) = Covar([u,u],j-i);
     end
+    ryu(i,1) = Covar([y,u],i-1); 
 end
-gM = inv(Ruu)*ry*(1/Tp);
-
-hm = [];
-tn = 0:1:length(gM)-1;
-for i = 1:length(gM)
-    hm(i) = Tp*sum(gM(1:i));
-end
+gM = inv(Ruu)*ryu;
 figure()
-stairs(Tp*tn,hm,'r')
+plot(tn*Tp,gM);
+% Widzimy ze wzmocnienie statyczne wynosi okolo 4 i ze jest to obiekt niskiego
+% rzedu
+
 %% Metoda analizy widmowej
 [ruu, tauu] = xcorr(u,'biased');
 [ryu, tauuy] = xcorr(y,u,'biased');
-m = 1000;
-k = 0:1:m-1;
-omegak = 2*pi*k/m;
-omega = omegak/Tp;
+Mw = N/5;
+k = 0:1:Mw-1;
+omegak = 2*pi*k/N; % [rad]
+omega = omegak/Tp; %[rad/s]
 Gn = fft(y)./fft(u);
 G16 = fft(ryu(7500:end))./fft(ruu(7500:end)); 
 mod = abs(Gn(1:m));
