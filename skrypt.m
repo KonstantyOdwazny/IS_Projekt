@@ -97,35 +97,124 @@ yest = y(1:4000);
 uest = u(1:4000);
 ywer = y(4000:end);
 uwer = u(4000:end);
-fi = zeros(length(uest), ilosc_parametrow);
-for i = ilosc_parametrow:length(yest)
+% % Model inercji pierwszego rzedu
+% fi = zeros(length(uest), 2);
+% for i = 2:length(yest)
 %     fi(i,1) = -1*yest(i-1);
-%     fi(i,2) = -1*yest(i-2);
-%     fi(i,3) = uest(i-1);
-    for j = 1:ilosc_parametrow-1
-        fi(i,j) = -1*yest(i-j);
-    end
-    fi(i,ilosc_parametrow) = uest(i-1);
+%     fi(i,2) = uest(i);
+% end
+% p = pinv(fi) * yest;
+% ym = zeros(1,length(ywer));
+% yp = zeros(1,length(ywer));
+% ym(1) = 440;
+% yp(1) = 440;
+% for i = 2:length(ywer)
+%     ym(i) = -1*p(1)*ym(i-1) + p(2)*uwer(i);
+%     yp(i) = -1*p(1)*ywer(i-1) + p(2)*uwer(i);
+% end
+% figure()
+% hold on
+% plot(ywer)
+% plot(yp,'g')
+% plot(ym, 'r')
+% title('Model inercji 1 rzedu metoda LS')
+% legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
+% hold off
+% ARX 2 parametry
+fi2 = zeros(length(uest), 2);
+for i = 2:length(yest)
+    fi2(i,1) = -1*yest(i-1);
+    fi2(i,2) = uest(i-1);
 end
-p = inv(fi' * fi)*fi' * yest;
-ym = zeros(1,length(ywer));
-yp = zeros(1,length(ywer));
-for i = ilosc_parametrow:length(ywer)
-%     ym(i) = -1*p(1)*ym(i-1) - p(2)*ym(i-2) + p(3)*uwer(i-1);
-%     yp(i) = -1*p(1)*ywer(i-1)- p(2)*ywer(i-2) + p(3)*uwer(i-1);
-    for j=1:ilosc_parametrow-1
-        ym(i) = ym(i)- p(j)*ym(i-j);
-        yp(i) = yp(i)- p(j)*ywer(i-j);
-    end
-    ym(i) = ym(i)+ p(ilosc_parametrow)*uwer(i-1);
-    yp(i) = yp(i)+ p(ilosc_parametrow)*uwer(i-1);
+p2 = pinv(fi2) * yest;
+ym2 = zeros(1,length(ywer));
+yp2 = zeros(1,length(ywer));
+ym2(1) = 440;
+yp2(1) = 440;
+for i = 2:length(ywer)
+    ym2(i) = -1*p2(1)*ym2(i-1) + p2(2)*uwer(i-1);
+    yp2(i) = -1*p2(1)*ywer(i-1) + p2(2)*uwer(i-1);
 end
+figure()
 hold on
-plot(y)
-plot(yp,'g')
-title('LS')
-legend('ywer - zmierzone','yp - odpowiedz predykowana')
+plot(ywer)
+plot(yp2,'g')
+plot(ym2, 'r')
+title('Model ARX 2 parametry metoda LS')
+legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
 hold off
+% ARX 4 parametry
+fi3 = zeros(length(uest), 4);
+for i = 3:length(yest)
+    fi3(i,1) = -1*yest(i-1);
+    fi3(i,2) = -1*yest(i-2);
+    fi3(i,3) = uest(i-1);
+    fi3(i,4) = uest(i-2);
+end
+p3 = inv(fi3' * fi3)*fi3' * yest;
+ym3 = zeros(1,length(ywer));
+yp3 = zeros(1,length(ywer));
+ym3(1) = 440;
+yp3(1) = 440;
+ym3(2) = 440;
+yp3(2) = 440;
+for i = 3:length(ywer)
+    ym3(i) = -1*p3(1)*ym3(i-1) - p3(2)*ym3(i-2) + p3(3)*uwer(i-1) + p3(4)*uwer(i-2);
+    yp3(i) = -1*p3(1)*ywer(i-1) - p3(2)*ywer(i-2) + p3(3)*uwer(i-1) + p3(4)*uwer(i-2);
+end
+figure()
+hold on
+plot(ywer)
+plot(yp3,'g')
+plot(ym3, 'r')
+title('Model ARX 4 parametry metoda LS')
+legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
+hold off
+% ARX 6 parametry
+fi4 = zeros(length(uest), 6);
+for i = 4:length(yest)
+    fi4(i,1) = -1*yest(i-1);
+    fi4(i,2) = -1*yest(i-2);
+    fi4(i,3) = -1*yest(i-3);
+    fi4(i,4) = uest(i-1);
+    fi4(i,5) = uest(i-2);
+    fi4(i,6) = uest(i-3);
+end
+p4 = inv(fi4' * fi4)*fi4' * yest;
+ym4 = zeros(1,length(ywer));
+yp4 = zeros(1,length(ywer));
+ym4(1) = 440;
+yp4(1) = 440;
+ym4(2) = 440;
+yp4(2) = 440;
+ym4(3) = 440;
+yp4(3) = 440;
+for i = 4:length(ywer)
+    ym4(i) = -1*p4(1)*ym4(i-1) - p4(2)*ym4(i-2)-p4(3)*ym4(i-3) + p4(4)*uwer(i-1) + p4(5)*uwer(i-2) + p4(6)*uwer(i-3);
+    yp4(i) = -1*p4(1)*ywer(i-1) - p4(2)*ywer(i-2)- p4(3)*ywer(i-3) + p4(4)*uwer(i-1) + p4(5)*uwer(i-2)+ p4(6)*uwer(i-3);
+end
+figure()
+hold on
+plot(ywer)
+plot(yp4,'g')
+plot(ym4, 'r')
+title('Model ARX 6 parametrow metoda LS')
+legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
+hold off
+Vp = zeros(1,3);
+Vm = zeros(1,3);
+ep = ywer' - yp2;
+Vp(1) = (1/length(ywer)) * ep*ep';
+em = ywer' - ym2;
+Vm(1) = (1/length(ywer)) * em*em';
+ep2 = ywer' - yp3;
+Vp(2) = (1/length(ywer)) * ep2*ep2';
+em2 = ywer' - ym3;
+Vm(2) = (1/length(ywer)) * em2*em2';
+ep3 = ywer' - yp4;
+Vp(3) = (1/length(ywer)) * ep3*ep3';
+em3 = ywer' - ym4;
+Vm(3) = (1/length(ywer)) * em3*em3';
 %% Zmienne instrumentalne
 yest = y(1:4000);
 uest = u(1:4000);
