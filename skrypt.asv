@@ -46,41 +46,57 @@ plot(tn*Tp,gM);
 %% Metoda analizy widmowej
 [ruu, tauu] = xcorr(u,'biased');
 [ryu, tauuy] = xcorr(y,u,'biased');
-Mw = N/5;
-k = 0:1:Mw-1;
-omegak = 2*pi*k/N;
-omega = omegak/Tp;
+Mw = N/10;
+k = 0:1:N-1;
+Np = (N/2)-1;
+omegak = 2*pi*k/N; % [rad]
+omega = omegak/Tp; %[rad/s]
+wh = zeros(N,1);
+% Okno Hamminga
+for i=0:N-1
+    if (i < Mw)
+        wh(i+1,1) = 0.5*(1 + cos(i*pi/Mw));
+    end
+end
+ru = zeros(N,1);
+ry = zeros(N,1);
+for i=0:N-1
+    ru(i+1,1) = Covar([u,u],i)*wh(i+1);
+    ry(i+1,1) = Covar([y,u],i)*wh(i+1);
+end
+
 Gn = fft(y)./fft(u);
-G16 = fft(ryu(7500:end))./fft(ruu(7500:end)); 
-mod = abs(Gn(1:m));
-arg = angle(Gn(1:m))*180/pi;
-for i = 1:m
+Gw = fft(ryu(7500))./fft(ruu);
+mod = abs(Gn(1:Np));
+arg = angle(Gn(1:Np))*180/pi;
+for i = 1:Np
     if arg(i)>2*pi
         arg(i) = arg(i)-360;
     end
 end
-Lm1 = 20*log10(mod);
-figure()
-semilogx(omega, Lm1, 'g')
-title('Modol')
-figure()
-semilogx(omega,arg,'k')
-title('Angle')
-
-mod16 = abs(G16(1:m));
-arg2 = angle(G16(1:m))*180/pi;
-for i = 1:m
-    if arg2(i)> 10
-        arg2(i) = arg2(i)-360;
+mod1 = abs(Gw(1:Np));
+arg1 = angle(Gw(1:Np))*180/pi;
+for i = 1:Np
+    if arg1(i)>2*pi
+        arg1(i) = arg1(i)-360;
     end
 end
-Lm2 = 20*log10(mod16);            
+Lm = 20*log10(mod);
+Lm1 = 20*log10(mod1);
 figure()
-semilogx(omega, Lm2, 'b')
+hold on
+semilogx(omega(1:Np), Lm, 'b')
+semilogx(omega(1:Np), Lm1, 'r')
 title('Modol')
+hold off
 figure()
-semilogx(omega,arg2,'r')
+hold on
+semilogx(omega(1:Np),arg,'k')
+semilogx(omega(1:Np),arg1,'g')
 title('Angle')
+hold off
+
+
 
 %% Metoda LS
 ilosc_parametrow = 2;
