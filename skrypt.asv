@@ -97,6 +97,29 @@ yest = y(1:4000);
 uest = u(1:4000);
 ywer = y(4000:end);
 uwer = u(4000:end);
+% Model inercji pierwszego rzedu
+fi = zeros(length(uest), 2);
+for i = 2:length(yest)
+    fi(i,1) = -1*yest(i-1);
+    fi(i,2) = 1;
+end
+p = pinv(fi) * yest;
+ym = zeros(1,length(ywer));
+yp = zeros(1,length(ywer));
+ym(1) = 440;
+yp(1) = 440;
+for i = 2:length(ywer)
+    ym(i) = -1*p(1)*ym(i-1) + p(2)*uwer(i);
+    yp(i) = -1*p(1)*ywer(i-1) + p(2)*uwer(i);
+end
+figure()
+hold on
+plot(ywer)
+plot(yp,'g')
+plot(ym, 'r')
+title('Model inercji 1 rzedu metoda LS')
+legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
+hold off
 % ARX 2 parametry
 fi2 = zeros(length(uest), 2);
 for i = 2:length(yest)
@@ -178,30 +201,49 @@ plot(ym4, 'r')
 title('Model ARX 6 parametrow metoda LS')
 legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
 hold off
-ep = ywer - yp;
-Vp = (1/length(ywer)) * ep*ep';
-em = ywer -
-Vm = (1/length(ywer)) * em*em';
+Vp = zeros(1,4);
+Vm = zeros(1,4);
+ep1 = ywer' - yp;
+Vp(1) = (1/length(ywer)) * ep1*ep1';
+em1 = ywer' - ym;
+Vm(1) = (1/length(ywer)) * em1*em1';
+ep = ywer' - yp2;
+Vp(2) = (1/length(ywer)) * ep*ep';
+em = ywer' - ym2;
+Vm(2) = (1/length(ywer)) * em*em';
+ep2 = ywer' - yp3;
+Vp(3) = (1/length(ywer)) * ep2*ep2';
+em2 = ywer' - ym3;
+Vm(3) = (1/length(ywer)) * em2*em2';
+ep3 = ywer' - yp4;
+Vp(4) = (1/length(ywer)) * ep3*ep3';
+em3 = ywer' - ym4;
+Vm(4) = (1/length(ywer)) * em3*em3';
+tm = [1 2 4 6];
+figure()
+plot(tm,Vp,tm,Vm)
+legend('Vp','Vm');
+xlabel('m')
+ylabel('V')
 %% Zmienne instrumentalne
 yest = y(1:4000);
 uest = u(1:4000);
-x =zeros(1,length(yest));
+ywer = y(4000:end);
+uwer = u(4000:end);
+x = zeros(1,length(yest));
 z = zeros(length(yest),2);
 sumx=0;
-for i=1:length(yest)
-    if i==1
-        x(i) = p(1)*yest(i)+p(2)*uest(i);
-        z(i,1) = (z((i),1) - x(i));
-        z(i,2) = (z((i),2) - uest(i));
-    else
-        x(i) = p(1)*yest(i-1)+p(2)*uest(i-1);
-        z(i,1) = (z((i-1),1) - x(i-1));
-        z(i,2) = (z((i-1),2) - uest(i-1));
-    end
+% IV 2 parametry
+for i=2:length(yest)
+    x(i) = -1*p2(1)*x(i-1)+p2(2)*uest(i-1);
+    z(i,1) = -1*x(i-1);
+    z(i,2) = uest(i-1); 
 end
-piv = (inv(z' * fi))*z' * yest;
+piv = (inv(z' * fi2))*z' * yest;
 ymiv = zeros(1,length(ywer));
 ypiv = zeros(1,length(ywer));
+ymiv(1) = 440;
+ypiv(1) = 440;
 for i = 2:length(ywer)
     ymiv(i) = -1*piv(1)*ymiv(i-1) + piv(2)*uwer(i-1);
     ypiv(i) = -1*piv(1)*ywer(i-1) + piv(2)*uwer(i-1);
@@ -210,6 +252,98 @@ figure()
 hold on
 plot(ywer)
 plot(ymiv,'k')
-title('IV')
-legend('ywer - zmierzone','yiv - odpowiedz predykowana')
+plot(ypiv)
+title('IV 2 parametry')
+legend('ywer - zmierzone','ymiv - odpowiedz symulatora','ypiv - odpowiedz predyktora')
 hold off
+% IV 4 parametry
+x2 = zeros(1,length(yest));
+z2 = zeros(length(yest),4);
+for i=3:length(yest)
+    x2(i) = -1*p3(1)*x2(i-1) - p3(2)*x2(i-2)+ p3(3)*uest(i-1) + p3(4)*uest(i-2);
+    z2(i,1) = -1*x2(i-1);
+    z2(i,2) = -1*x2(i-2);
+    z2(i,3) = uest(i-1); 
+    z2(i,4) = uest(i-2); 
+end
+piv2 = (inv(z2' * fi3))*z2' * yest;
+ymiv2 = zeros(1,length(ywer));
+ypiv2 = zeros(1,length(ywer));
+ymiv2(1) = 440;
+ypiv2(1) = 440;
+ymiv2(2) = 440;
+ypiv2(2) = 440;
+for i = 3:length(ywer)
+    ymiv2(i) = -1*piv2(1)*ymiv2(i-1) - piv2(2)*ymiv2(i-2) + piv2(3)*uwer(i-1) + piv2(4)*uwer(i-2);
+    ypiv2(i) = -1*piv2(1)*ywer(i-1) - piv2(2)*ywer(i-2)  + piv2(3)*uwer(i-1) + piv2(4)*uwer(i-2);
+end
+figure()
+hold on
+plot(ywer)
+plot(ymiv2,'k')
+plot(ypiv2)
+title('IV 4 parametry')
+legend('ywer - zmierzone','ymiv - odpowiedz symulatora','ypiv - odpowiedz predyktora')
+hold off
+% IV 6 parametry
+x3 = zeros(1,length(yest));
+z3 = zeros(length(yest),6);
+for i=4:length(yest)
+    x3(i) = -1*p4(1)*x3(i-1) - p4(2)*x3(i-2) - p4(3)*x3(i-3) + p4(4)*uest(i-1) + p4(5)*uest(i-2) + p4(6)*uest(i-3);
+    z3(i,1) = -1*x3(i-1);
+    z3(i,2) = -1*x3(i-2);
+    z3(i,3) = -1*x3(i-3);
+    z3(i,4) = uest(i-1); 
+    z3(i,5) = uest(i-2); 
+    z3(i,6) = uest(i-3); 
+end
+piv3 = (inv(z3' * fi4))*z3' * yest;
+ymiv3 = zeros(1,length(ywer));
+ypiv3 = zeros(1,length(ywer));
+ymiv3(1) = 440;
+ypiv3(1) = 440;
+ymiv3(2) = 440;
+ypiv3(2) = 440;
+ymiv3(3) = 440;
+ypiv3(3) = 440;
+for i = 4:length(ywer)
+    ymiv3(i) = -1*piv3(1)*ymiv3(i-1) - piv3(2)*ymiv3(i-2) - piv3(3)*ymiv3(i-3) + piv3(4)*uwer(i-1) + piv3(5)*uwer(i-2) + piv3(6)*uwer(i-3);
+    ypiv3(i) = -1*piv3(1)*ywer(i-1) - piv3(2)*ywer(i-2)- piv3(3)*ywer(i-3)  + piv3(4)*uwer(i-1) + piv3(5)*uwer(i-2)+ piv3(6)*uwer(i-3);
+end
+figure()
+hold on
+plot(ywer)
+plot(ymiv3,'k')
+plot(ypiv3)
+title('IV 6 parametry')
+legend('ywer - zmierzone','ymiv - odpowiedz symulatora','ypiv - odpowiedz predyktora')
+hold off
+
+Vpiv = zeros(1,3);
+Vmiv = zeros(1,3);
+epiv1 = ywer' - ypiv;
+Vpiv(1) = (1/length(ywer)) * epiv1*epiv1';
+emiv1 = ywer' - ymiv;
+Vmiv(1) = (1/length(ywer)) * emiv1*emiv1';
+epiv = ywer' - ypiv2;
+Vpiv(2) = (1/length(ywer)) * epiv*epiv';
+emiv = ywer' - ymiv2;
+Vmiv(2) = (1/length(ywer)) * emiv*emiv';
+epiv2 = ywer' - ypiv3;
+Vpiv(3) = (1/length(ywer)) * epiv2*epiv2';
+emiv2 = ywer' - ymiv3;
+Vmiv(3) = (1/length(ywer)) * emiv2*emiv2';
+tmiv = [2 4 6];
+figure()
+plot(tmiv,log(Vpiv),tmiv,log(Vmiv))
+legend('Vpiv','Vmiv');
+xlabel('m')
+ylabel('ln(V)')
+%% Transmitancje
+Gld = tf([-0.0088],[1,-1],Tp);
+Gld2 = tf([-0.121,0.1221],[1,-1.9252,0.9254],Tp);
+Gld3 = tf([-0.119,0.1715,-0.0521],[1,-2.67,2.43362,-0.7628],Tp);
+
+Gld = tf([0.0231],[1,-],Tp);
+Gld2 = tf([-0.121,0.1221],[1,-1.9252,0.9254],Tp);
+Gld3 = tf([-0.119,0.1715,-0.0521],[1,-2.67,2.43362,-0.7628],Tp);
