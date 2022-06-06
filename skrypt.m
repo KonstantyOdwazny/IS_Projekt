@@ -201,25 +201,25 @@ plot(ym4, 'r')
 title('Model ARX 6 parametrow metoda LS')
 legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
 hold off
-Vp = zeros(1,4);
-Vm = zeros(1,4);
-ep1 = ywer' - yp;
-Vp(1) = (1/length(ywer)) * ep1*ep1';
-em1 = ywer' - ym;
-Vm(1) = (1/length(ywer)) * em1*em1';
+Vp = zeros(1,3);
+Vm = zeros(1,3);
+% ep1 = ywer' - yp;
+% Vp(1) = (1/length(ywer)) * ep1*ep1';
+% em1 = ywer' - ym;
+% Vm(1) = (1/length(ywer)) * em1*em1';
 ep = ywer' - yp2;
-Vp(2) = (1/length(ywer)) * ep*ep';
+Vp(1) = (1/length(ywer)) * ep*ep';
 em = ywer' - ym2;
-Vm(2) = (1/length(ywer)) * em*em';
+Vm(1) = (1/length(ywer)) * em*em';
 ep2 = ywer' - yp3;
-Vp(3) = (1/length(ywer)) * ep2*ep2';
+Vp(2) = (1/length(ywer)) * ep2*ep2';
 em2 = ywer' - ym3;
-Vm(3) = (1/length(ywer)) * em2*em2';
+Vm(2) = (1/length(ywer)) * em2*em2';
 ep3 = ywer' - yp4;
-Vp(4) = (1/length(ywer)) * ep3*ep3';
+Vp(3) = (1/length(ywer)) * ep3*ep3';
 em3 = ywer' - ym4;
-Vm(4) = (1/length(ywer)) * em3*em3';
-tm = [1 2 4 6];
+Vm(3) = (1/length(ywer)) * em3*em3';
+tm = [2 4 6];
 figure()
 plot(tm,Vp,tm,Vm)
 legend('Vp','Vm');
@@ -347,3 +347,82 @@ Gld3 = tf([-0.119,0.1715,-0.0521],[1,-2.67,2.43362,-0.7628],Tp);
 Gid = tf([0.0231],[1,-0.9947],Tp);
 Gid2 = tf([-0.1214,0.1217],[1,-1.8989,0.8990],Tp);
 Gid3 = tf([-0.1196,0.1661,-0.0465],[1,-2.6252,2.3410,-0.7158],Tp);
+
+%% Porownanie
+figure()
+hold on
+plot(tn*Tp,gM,'g');
+impulse(Gld)
+impulse(Gld2)
+impulse(Gld3)
+impulse(Gid)
+impulse(Gid2)
+impulse(Gid3)
+axis([0,3,-4,5])
+hold off
+title('Porownanie metody korelacyjnej z metoda LS')
+legend('metoda analizy korealcyjnej','Gls - 2 parametry','Gls2 - 4 parametry','Gls3 - 6 parametrow','Giv - 2 parametry','Giv2 - 4 parametry','Giv3 - 6 parametrow')
+
+for i = 1:length(arg)
+    arg(i) = arg(i) + 360;
+end
+figure()
+hold on
+semilogx(omega(1:Np), Lm, 'k')
+bode(Gld)
+bode(Gld2)
+bode(Gld3)
+bode(Gid)
+bode(Gid2)
+bode(Gid3)
+semilogx(omega(1:Np),arg,'k')
+hold off
+title('Porownanie charakterystyk Bodego')
+legend('Gls - 2 parametry','Gls2 - 4 parametry','Gls3 - 6 parametrow','Giv - 2 parametry','Giv2 - 4 parametry','Giv3 - 6 parametrow','Metoda analizy widmowej')
+
+figure()
+plot(tmiv,log(Vmiv),tmiv,log(Vm))
+legend('Vmiv','Vmls');
+xlabel('m')
+ylabel('ln(V)')
+re = zeros(1,length(em));
+re2 = zeros(1,length(em));
+re3 = zeros(1,length(em));
+lin = (1.96/sqrt(length(em)))*ones(1,length(em));
+lin2 = (-1.96/sqrt(length(em)))*ones(1,length(em));
+for i = 1:length(em)
+    re(i) = Covar([em',em'],i-1)/Covar([em',em'],0);
+    re2(i) = Covar([em2',em2'],i-1)/Covar([em2',em2'],0);
+    re3(i) = Covar([em3',em3'],i-1)/Covar([em3',em3'],0);
+end
+figure()
+hold on
+plot(re,'b')
+plot(re2,'r')
+plot(re3,'g')
+plot(lin,'--k')
+plot(lin2,'--k')
+hold off
+title('Test bialosci bledow')
+legend('r - LS 2 parametry','r1 - LS 4 parametry','r2 - LS 6 parametrow','linia bledu')
+
+
+s = zeros(1,length(em));
+s2 = zeros(1,length(em));
+s3 = zeros(1,length(em));
+for i = 1:length(em)
+    s(i) = Covar([em',uwer],i-1)/sqrt(Covar([em',em'],0)*Covar([uwer,uwer],0));
+    s2(i) = Covar([em2',uwer],i-1)/sqrt(Covar([em2',em2'],0)*Covar([uwer,uwer],0));
+    s3(i) = Covar([em3',uwer],i-1)/sqrt(Covar([em3',em3'],0)*Covar([uwer,uwer],0));
+end
+figure()
+hold on
+plot(s,'b')
+plot(s2,'r')
+plot(s3,'g')
+plot(lin,'--k')
+plot(lin2,'--k')
+hold off
+title('Test skolerowania bledow resztowych')
+legend('s - LS 2 parametry','s1 - LS 4 parametry','s2 - LS 6 parametrow','linia bledu')
+
