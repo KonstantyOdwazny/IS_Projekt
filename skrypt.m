@@ -97,27 +97,67 @@ yest = y(1:4000);
 uest = u(1:4000);
 ywer = y(4000:end);
 uwer = u(4000:end);
-% Model inercji pierwszego rzedu
-fi = zeros(length(uest), 2);
+% Model statyczny
+fis = zeros(length(uest), 2);
+for i = 1:length(yest)
+    fis(i,1) = uest(i);
+    fis(i,2) = 1;
+end
+ps = pinv(fis) * yest;
+yms = zeros(1,length(ywer));
+for i = 1:length(ywer)
+    yms(i) = ps(1)*uwer(i) + ps(2);
+end
+figure()
+hold on
+plot(ywer)
+plot(yms, 'r')
+title('Model statyczny')
+legend('y - zmierzone','ym - odpowiedz symulatora')
+hold off
+% Model FIR
+fir = zeros(length(uest), 1);
 for i = 2:length(yest)
+    fir(i,1) = uest(i-1);
+%     fir(i,2) = uest(i-2);
+end
+pr = pinv(fir) * yest;
+ymr = zeros(1,length(ywer));
+ymr(1) = 440;
+for i = 2:length(ywer)
+    ymr(i) = pr(1)*uwer(i-1); %+ pr(2)*uwer(i-2);
+end
+figure()
+hold on
+plot(ywer)
+plot(ymr, 'r')
+title('Model FIR')
+legend('y - zmierzone','ym - odpowiedz symulatora')
+hold off
+% Model oscylacyjny
+fi = zeros(length(uest), 3);
+for i = 3:length(yest)
     fi(i,1) = -1*yest(i-1);
-    fi(i,2) = 1;
+    fi(i,2) = -1*yest(i-2);
+    fi(i,3) = uest(i-2);
 end
 p = pinv(fi) * yest;
 ym = zeros(1,length(ywer));
 yp = zeros(1,length(ywer));
 ym(1) = 440;
 yp(1) = 440;
-for i = 2:length(ywer)
-    ym(i) = -1*p(1)*ym(i-1) + p(2)*uwer(i);
-    yp(i) = -1*p(1)*ywer(i-1) + p(2)*uwer(i);
+ym(2) = 440;
+yp(2) = 440;
+for i = 3:length(ywer)
+    ym(i) = -1*p(1)*ym(i-1) - p(2)*ym(i-2) + p(3)*uwer(i-2);
+    yp(i) = -1*p(1)*ywer(i-1)- p(2)*ywer(i-2) + p(3)*uwer(i-2);
 end
 figure()
 hold on
 plot(ywer)
 plot(yp,'g')
 plot(ym, 'r')
-title('Model inercji 1 rzedu metoda LS')
+title('Model oscylacyjny')
 legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
 hold off
 % ARX 2 parametry
@@ -201,6 +241,16 @@ plot(ym4, 'r')
 title('Model ARX 6 parametrow metoda LS')
 legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
 hold off
+
+
+%% Bledy
+
+eps = ywer' - yms;
+Vs = (1/length(ywer)) * eps*eps';
+
+epr = ywer' - ymr;
+Vr = (1/length(ywer)) * epr*epr';
+
 Vp = zeros(1,3);
 Vm = zeros(1,3);
 % ep1 = ywer' - yp;
@@ -221,10 +271,10 @@ em3 = ywer' - ym4;
 Vm(3) = (1/length(ywer)) * em3*em3';
 tm = [2 4 6];
 figure()
-plot(tm,Vp,tm,Vm)
+plot(tm,log(Vp),tm,log(Vm))
 legend('Vp','Vm');
 xlabel('m')
-ylabel('V')
+ylabel('ln(V)')
 %% Zmienne instrumentalne
 yest = y(1:4000);
 uest = u(1:4000);
@@ -348,7 +398,20 @@ Gid = tf([0.0231],[1,-0.9947],Tp);
 Gid2 = tf([-0.1214,0.1217],[1,-1.8989,0.8990],Tp);
 Gid3 = tf([-0.1196,0.1661,-0.0465],[1,-2.6252,2.3410,-0.7158],Tp);
 
-%% Porownanie
+r1 = roots([1,-1]);
+r2 = roots([1,-1.9252,0.9254]);
+r3 = roots([1,-2.67,2.43362,-0.7628]);
+zer1 = 0;
+zer2 = roots([-0.121,0.1221]);
+zer3 = roots([-0.119,0.1715,-0.0521]);
+
+riv1 = roots([1,-0.9947]);
+riv2 = roots([1,-1.8989,0.8990]);
+riv3 = roots([1,-2.6252,2.3410,-0.7158]);
+zeriv1 = 0;
+zeriv2 = roots([-0.1214,0.1217]);
+zeriv3 = roots([-0.1196,0.1661,-0.0465]);
+%% Porownanie elastycznosci
 figure()
 hold on
 plot(tn*Tp,gM,'g');
@@ -425,4 +488,110 @@ plot(lin2,'--k')
 hold off
 title('Test skolerowania bledow resztowych')
 legend('s - LS 2 parametry','s1 - LS 4 parametry','s2 - LS 6 parametrow','linia bledu')
+
+%% Porownanie zlozonosci modelu
+dp = length(p2);
+dp2 = length(p3);
+dp3 = length(p4);
+dpiv = length(piv);
+dpiv2 = length(piv2);
+dpiv3 = length(piv3);
+FPE = zeros(2,3);
+AIC = zeros(2,3);
+SIC = zeros(2,3);
+
+FPE(1,1) = Vm(1)*(1+dp/N)/(1 - dp/N);
+FPE(1,2) = Vm(2)*(1+dp2/N)/(1 - dp2/N);
+FPE(1,3) = Vm(3)*(1+dp3/N)/(1 - dp3/N);
+FPE(2,1) = Vmiv(1)*(1+dpiv/N)/(1 - dpiv/N);
+FPE(2,2) = Vmiv(2)*(1+dpiv2/N)/(1 - dpiv2/N);
+FPE(2,3) = Vmiv(3)*(1+dpiv3/N)/(1 - dpiv3/N);
+
+AIC(1,1) = N*log(Vm(1)) + 2*dp;
+AIC(1,2) = N*log(Vm(2)) + 2*dp2;
+AIC(1,3) = N*log(Vm(3)) + 2*dp3;
+AIC(2,1) = N*log(Vmiv(1)) + 2*dpiv;
+AIC(2,2) = N*log(Vmiv(2)) + 2*dpiv2;
+AIC(2,3) = N*log(Vmiv(3)) + 2*dpiv3;
+
+SIC(1,1) = N*log(Vm(1)) + 2*dp*log(N);
+SIC(1,2) = N*log(Vm(2)) + 2*dp2*log(N);
+SIC(1,3) = N*log(Vm(3)) + 2*dp3*log(N);
+SIC(2,1) = N*log(Vmiv(1)) + 2*dpiv*log(N);
+SIC(2,2) = N*log(Vmiv(2)) + 2*dpiv2*log(N);
+SIC(2,3) = N*log(Vmiv(3)) + 2*dpiv3*log(N);
+
+Mi = (fi2' * fi2)/4000;
+Mi2 = (fi3' * fi3)/4000;
+Mi3 = (fi4' * fi4)/4000;
+Miv = (z' * fi2)/4000;
+Miv2 = (z2' * fi3)/4000;
+Miv3 = (z3' * fi4)/4000;
+
+condm1 = sqrt(max(eig(Mi)))/sqrt(min(eig(Mi)));
+condm2 = sqrt(max(eig(Mi2)))/sqrt(min(eig(Mi2)));
+condm3 = sqrt(max(eig(Mi3)))/sqrt(min(eig(Mi3)));
+condmiv = sqrt(max(eig(Miv)))/sqrt(min(eig(Miv)));
+condmiv2 = sqrt(max(eig(Miv2)))/sqrt(min(eig(Miv2)));
+condmiv3 = sqrt(max(eig(Miv3)))/sqrt(min(eig(Miv3)));
+
+es = zeros(length(yest),1);
+sigma = 0;
+es1 = zeros(length(yest),1);
+sigma1 = 0;
+es2 = zeros(length(yest),1);
+sigma2 = 0;
+es3 = zeros(length(yest),1);
+sigma3 = 0;
+es4 = zeros(length(yest),1);
+sigma4 = 0;
+es5 = zeros(length(yest),1);
+sigma5 = 0;
+for i=1:length(yest)
+    es(i) = yest(i) - fi2(i,:) * p2;
+    es1(i) = yest(i) - fi3(i,:) * p3;
+    es2(i) = yest(i) - fi4(i,:) * p4;
+    es3(i) = yest(i) - fi2(i,:) * piv;
+    es4(i) = yest(i) - fi3(i,:) * piv2;
+    es5(i) = yest(i) - fi4(i,:) * piv3;
+end
+sigma = sum(es.^2)/(length(yest)-4);
+cov = sigma * inv(fi2' * fi2);
+sigma1 = sum(es1.^2)/(length(yest)-4);
+cov1 = sigma1 * inv(fi3' * fi3);
+sigma2 = sum(es2.^2)/(length(yest)-4);
+cov2 = sigma2 * inv(fi4' * fi4);
+sigma3 = sum(es3.^2)/(length(yest)-4);
+cov3 = sigma3 * inv(z' * fi2);
+sigma4 = sum(es4.^2)/(length(yest)-4);
+cov4 = sigma4 * inv(z2' * fi3);
+sigma5 = sum(es5.^2)/(length(yest)-4);
+cov5 = sigma5 * inv(z3' * fi4);
+
+pu = [p2(1) - 1.96*sqrt(cov(1,1)),p2(1) + 1.96*sqrt(cov(1,1));
+    p2(2) - 1.96*sqrt(cov(2,2)),p2(2) + 1.96*sqrt(cov(2,2))];
+pu2 = [p3(1) - 1.96*sqrt(cov1(1,1)),p3(1) + 1.96*sqrt(cov1(1,1));
+    p3(2) - 1.96*sqrt(cov1(2,2)),p3(2) + 1.96*sqrt(cov1(2,2));
+    p3(3) - 1.96*sqrt(cov1(3,3)),p3(3) + 1.96*sqrt(cov1(3,3));
+    p3(4) - 1.96*sqrt(cov1(4,4)),p3(4) + 1.96*sqrt(cov1(4,4))];
+pu3 = [p4(1) - 1.96*sqrt(cov2(1,1)),p4(1) + 1.96*sqrt(cov2(1,1));
+    p4(2) - 1.96*sqrt(cov2(2,2)),p4(2) + 1.96*sqrt(cov2(2,2));
+    p4(3) - 1.96*sqrt(cov2(3,3)),p4(3) + 1.96*sqrt(cov2(3,3));
+    p4(4) - 1.96*sqrt(cov2(4,4)),p4(4) + 1.96*sqrt(cov2(4,4));
+    p4(5) - 1.96*sqrt(cov2(5,5)),p4(5) + 1.96*sqrt(cov2(5,5));
+    p4(6) - 1.96*sqrt(cov2(6,6)),p4(6) + 1.96*sqrt(cov2(6,6))];
+
+puiv = [piv(1) - 1.96*sqrt(cov3(1,1)),piv(1) + 1.96*sqrt(cov3(1,1));
+    piv(2) - 1.96*sqrt(cov3(2,2)),piv(2) + 1.96*sqrt(cov3(2,2))];
+puiv2 = [piv2(1) - 1.96*sqrt(cov4(1,1)),piv2(1) + 1.96*sqrt(cov4(1,1));
+    piv2(2) - 1.96*sqrt(cov4(2,2)),piv2(2) + 1.96*sqrt(cov4(2,2));
+    piv2(3) - 1.96*sqrt(cov4(3,3)),piv2(3) + 1.96*sqrt(cov4(3,3));
+    piv2(4) - 1.96*sqrt(cov4(4,4)),piv2(4) + 1.96*sqrt(cov4(4,4))];
+puiv3 = [piv3(1) - 1.96*sqrt(cov5(1,1)),piv3(1) + 1.96*sqrt(cov5(1,1));
+    piv3(2) - 1.96*sqrt(cov5(2,2)),piv3(2) + 1.96*sqrt(cov5(2,2));
+    piv3(3) - 1.96*sqrt(cov5(3,3)),piv3(3) + 1.96*sqrt(cov5(3,3));
+    piv3(4) - 1.96*sqrt(cov5(4,4)),piv3(4) + 1.96*sqrt(cov5(4,4));
+    piv3(5) - 1.96*sqrt(cov5(5,5)),piv3(5) + 1.96*sqrt(cov5(5,5));
+    piv3(6) - 1.96*sqrt(cov5(6,6)),piv3(6) + 1.96*sqrt(cov5(6,6))];
+
 
