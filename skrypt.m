@@ -79,6 +79,9 @@ for i = 1:Np
         arg1(i) = arg1(i)-360;
     end
 end
+for i = 1:length(arg)
+    arg(i) = arg(i) + 360;
+end
 Lm = 20*log10(mod);
 Lm1 = 20*log10(mod1);
 figure()
@@ -426,9 +429,7 @@ hold off
 title('Porownanie metody korelacyjnej z metoda LS')
 legend('metoda analizy korealcyjnej','Gls - 2 parametry','Gls2 - 4 parametry','Gls3 - 6 parametrow','Giv - 2 parametry','Giv2 - 4 parametry','Giv3 - 6 parametrow')
 
-for i = 1:length(arg)
-    arg(i) = arg(i) + 360;
-end
+
 figure()
 hold on
 semilogx(omega(1:Np), Lm, 'k')
