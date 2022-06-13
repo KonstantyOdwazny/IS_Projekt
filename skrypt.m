@@ -11,14 +11,14 @@ avgu = mean(u);
 sigmay = var(y);
 avgy = mean(y);
 %% Wykresy
-plot(t,u,t,y);
-legend('u','y')
-figure()
-plot(t,u)
-title('u')
-figure()
-plot(t,y)
-title('y')
+% plot(t,u,t,y);
+% legend('u','y')
+% figure()
+% plot(t,u)
+% title('u')
+% figure()
+% plot(t,y)
+% title('y')
 %% Metoda korelacyjna
 
 % [ruu, tauu] = xcorr(u,'biased');
@@ -40,6 +40,7 @@ end
 gM = inv(Ruu)*ryu;
 figure()
 plot(tn*Tp,gM);
+title('Metoda korelacyjna');
 
 %% Metoda analizy widmowej
 [ruu, tauu] = xcorr(u,'unbiased');
@@ -68,28 +69,29 @@ Gw = fft(ryu(7500:end))./fft(ruu(7500:end));
 mod = abs(Gn(1:Np));
 arg = angle(Gn(1:Np))*180/pi;
 for i = 1:Np
-    if arg(i)>2*pi
+    if arg(i) > 2*pi
         arg(i) = arg(i)-360;
     end
 end
 mod1 = abs(Gw(1:Np));
 arg1 = angle(Gw(1:Np))*180/pi;
 for i = 1:Np
-    if arg1(i)>2*pi
-        arg1(i) = arg1(i)-360;
-    end
+    arg(i) = arg(i)+180;
+      
+ 
 end
-for i = 1:length(arg)
-    arg(i) = arg(i) + 360;
-end
+
 Lm = 20*log10(mod);
 Lm1 = 20*log10(mod1);
 figure()
+subplot(2,1,1)
 semilogx(omega(1:Np), Lm, 'b')
 title('Modol')
-figure()
+ylabel('20*log(mod)')
+subplot(2,1,2)
 semilogx(omega(1:Np),arg,'k')
 title('Angle')
+ylabel('Deg')
 
 
 
@@ -130,13 +132,13 @@ ymr(1) = 440;
 for i = 2:length(ywer)
     ymr(i) = pr(1)*uwer(i-1); %+ pr(2)*uwer(i-2);
 end
-figure()
-hold on
-plot(ywer)
-plot(ymr, 'r')
-title('Model FIR')
-legend('y - zmierzone','ym - odpowiedz symulatora')
-hold off
+% figure()
+% hold on
+% plot(ywer)
+% plot(ymr, 'r')
+% title('Model FIR')
+% legend('y - zmierzone','ym - odpowiedz symulatora')
+% hold off
 % Model oscylacyjny
 fi = zeros(length(uest), 3);
 for i = 3:length(yest)
@@ -155,19 +157,20 @@ for i = 3:length(ywer)
     ym(i) = -1*p(1)*ym(i-1) - p(2)*ym(i-2) + p(3)*uwer(i-2);
     yp(i) = -1*p(1)*ywer(i-1)- p(2)*ywer(i-2) + p(3)*uwer(i-2);
 end
-figure()
-hold on
-plot(ywer)
-plot(yp,'g')
-plot(ym, 'r')
-title('Model oscylacyjny')
-legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
-hold off
-% ARX 2 parametry
-fi2 = zeros(length(uest), 2);
+% figure()
+% hold on
+% plot(ywer)
+% plot(yp,'g')
+% plot(ym, 'r')
+% title('Model oscylacyjny')
+% legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
+% hold off
+% ARX 2 parametry plus offset
+fi2 = zeros(length(uest), 3);
 for i = 2:length(yest)
     fi2(i,1) = -1*yest(i-1);
     fi2(i,2) = uest(i-1);
+    fi2(i,3) = 1;
 end
 p2 = pinv(fi2) * yest;
 ym2 = zeros(1,length(ywer));
@@ -175,8 +178,8 @@ yp2 = zeros(1,length(ywer));
 ym2(1) = 440;
 yp2(1) = 440;
 for i = 2:length(ywer)
-    ym2(i) = -1*p2(1)*ym2(i-1) + p2(2)*uwer(i-1);
-    yp2(i) = -1*p2(1)*ywer(i-1) + p2(2)*uwer(i-1);
+    ym2(i) = -1*p2(1)*ym2(i-1) + p2(2)*uwer(i-1) + p2(3);
+    yp2(i) = -1*p2(1)*ywer(i-1) + p2(2)*uwer(i-1) + p2(3);
 end
 figure()
 hold on
@@ -187,14 +190,15 @@ title('Model ARX 2 parametry metoda LS')
 legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
 hold off
 % ARX 4 parametry
-fi3 = zeros(length(uest), 4);
+fi3 = zeros(length(uest), 5);
 for i = 3:length(yest)
     fi3(i,1) = -1*yest(i-1);
     fi3(i,2) = -1*yest(i-2);
     fi3(i,3) = uest(i-1);
     fi3(i,4) = uest(i-2);
+    fi3(i,5) = 1;
 end
-p3 = inv(fi3' * fi3)*fi3' * yest;
+p3 = pinv(fi3) * yest;
 ym3 = zeros(1,length(ywer));
 yp3 = zeros(1,length(ywer));
 ym3(1) = 440;
@@ -202,8 +206,8 @@ yp3(1) = 440;
 ym3(2) = 440;
 yp3(2) = 440;
 for i = 3:length(ywer)
-    ym3(i) = -1*p3(1)*ym3(i-1) - p3(2)*ym3(i-2) + p3(3)*uwer(i-1) + p3(4)*uwer(i-2);
-    yp3(i) = -1*p3(1)*ywer(i-1) - p3(2)*ywer(i-2) + p3(3)*uwer(i-1) + p3(4)*uwer(i-2);
+    ym3(i) = -1*p3(1)*ym3(i-1) - p3(2)*ym3(i-2) + p3(3)*uwer(i-1) + p3(4)*uwer(i-2) + p3(5);
+    yp3(i) = -1*p3(1)*ywer(i-1) - p3(2)*ywer(i-2) + p3(3)*uwer(i-1) + p3(4)*uwer(i-2) + p3(5);
 end
 figure()
 hold on
@@ -214,7 +218,7 @@ title('Model ARX 4 parametry metoda LS')
 legend('y - zmierzone','yp - odpowiedz predykowana','ym - odpowiedz symulatora')
 hold off
 % ARX 6 parametry
-fi4 = zeros(length(uest), 6);
+fi4 = zeros(length(uest), 7);
 for i = 4:length(yest)
     fi4(i,1) = -1*yest(i-1);
     fi4(i,2) = -1*yest(i-2);
@@ -222,8 +226,9 @@ for i = 4:length(yest)
     fi4(i,4) = uest(i-1);
     fi4(i,5) = uest(i-2);
     fi4(i,6) = uest(i-3);
+    fi4(i,7) = 1;
 end
-p4 = inv(fi4' * fi4)*fi4' * yest;
+p4 =pinv(fi4) * yest;
 ym4 = zeros(1,length(ywer));
 yp4 = zeros(1,length(ywer));
 ym4(1) = 440;
@@ -233,8 +238,8 @@ yp4(2) = 440;
 ym4(3) = 440;
 yp4(3) = 440;
 for i = 4:length(ywer)
-    ym4(i) = -1*p4(1)*ym4(i-1) - p4(2)*ym4(i-2)-p4(3)*ym4(i-3) + p4(4)*uwer(i-1) + p4(5)*uwer(i-2) + p4(6)*uwer(i-3);
-    yp4(i) = -1*p4(1)*ywer(i-1) - p4(2)*ywer(i-2)- p4(3)*ywer(i-3) + p4(4)*uwer(i-1) + p4(5)*uwer(i-2)+ p4(6)*uwer(i-3);
+    ym4(i) = -1*p4(1)*ym4(i-1) - p4(2)*ym4(i-2)-p4(3)*ym4(i-3) + p4(4)*uwer(i-1) + p4(5)*uwer(i-2) + p4(6)*uwer(i-3) + p4(7);
+    yp4(i) = -1*p4(1)*ywer(i-1) - p4(2)*ywer(i-2)- p4(3)*ywer(i-3) + p4(4)*uwer(i-1) + p4(5)*uwer(i-2)+ p4(6)*uwer(i-3) + p4(7);
 end
 figure()
 hold on
@@ -284,13 +289,14 @@ uest = u(1:4000);
 ywer = y(4000:end);
 uwer = u(4000:end);
 x = zeros(1,length(yest));
-z = zeros(length(yest),2);
+z = zeros(length(yest),3);
 sumx=0;
 % IV 2 parametry
 for i=2:length(yest)
     x(i) = -1*p2(1)*x(i-1)+p2(2)*uest(i-1);
     z(i,1) = -1*x(i-1);
     z(i,2) = uest(i-1); 
+    z(i,3) = 1;
 end
 piv = (inv(z' * fi2))*z' * yest;
 ymiv = zeros(1,length(ywer));
@@ -298,8 +304,8 @@ ypiv = zeros(1,length(ywer));
 ymiv(1) = 440;
 ypiv(1) = 440;
 for i = 2:length(ywer)
-    ymiv(i) = -1*piv(1)*ymiv(i-1) + piv(2)*uwer(i-1);
-    ypiv(i) = -1*piv(1)*ywer(i-1) + piv(2)*uwer(i-1);
+    ymiv(i) = -1*piv(1)*ymiv(i-1) + piv(2)*uwer(i-1) + piv(3);
+    ypiv(i) = -1*piv(1)*ywer(i-1) + piv(2)*uwer(i-1) + piv(3);
 end
 figure()
 hold on
@@ -311,13 +317,14 @@ legend('ywer - zmierzone','ymiv - odpowiedz symulatora','ypiv - odpowiedz predyk
 hold off
 % IV 4 parametry
 x2 = zeros(1,length(yest));
-z2 = zeros(length(yest),4);
+z2 = zeros(length(yest),5);
 for i=3:length(yest)
     x2(i) = -1*p3(1)*x2(i-1) - p3(2)*x2(i-2)+ p3(3)*uest(i-1) + p3(4)*uest(i-2);
     z2(i,1) = -1*x2(i-1);
     z2(i,2) = -1*x2(i-2);
     z2(i,3) = uest(i-1); 
-    z2(i,4) = uest(i-2); 
+    z2(i,4) = uest(i-2);
+    z2(i,5) = 1;
 end
 piv2 = (inv(z2' * fi3))*z2' * yest;
 ymiv2 = zeros(1,length(ywer));
@@ -327,8 +334,8 @@ ypiv2(1) = 440;
 ymiv2(2) = 440;
 ypiv2(2) = 440;
 for i = 3:length(ywer)
-    ymiv2(i) = -1*piv2(1)*ymiv2(i-1) - piv2(2)*ymiv2(i-2) + piv2(3)*uwer(i-1) + piv2(4)*uwer(i-2);
-    ypiv2(i) = -1*piv2(1)*ywer(i-1) - piv2(2)*ywer(i-2)  + piv2(3)*uwer(i-1) + piv2(4)*uwer(i-2);
+    ymiv2(i) = -1*piv2(1)*ymiv2(i-1) - piv2(2)*ymiv2(i-2) + piv2(3)*uwer(i-1) + piv2(4)*uwer(i-2) + piv2(5);
+    ypiv2(i) = -1*piv2(1)*ywer(i-1) - piv2(2)*ywer(i-2)  + piv2(3)*uwer(i-1) + piv2(4)*uwer(i-2) + piv2(5);
 end
 figure()
 hold on
@@ -340,7 +347,7 @@ legend('ywer - zmierzone','ymiv - odpowiedz symulatora','ypiv - odpowiedz predyk
 hold off
 % IV 6 parametry
 x3 = zeros(1,length(yest));
-z3 = zeros(length(yest),6);
+z3 = zeros(length(yest),7);
 for i=4:length(yest)
     x3(i) = -1*p4(1)*x3(i-1) - p4(2)*x3(i-2) - p4(3)*x3(i-3) + p4(4)*uest(i-1) + p4(5)*uest(i-2) + p4(6)*uest(i-3);
     z3(i,1) = -1*x3(i-1);
@@ -349,6 +356,7 @@ for i=4:length(yest)
     z3(i,4) = uest(i-1); 
     z3(i,5) = uest(i-2); 
     z3(i,6) = uest(i-3); 
+    z3(i,7) = 1;
 end
 piv3 = (inv(z3' * fi4))*z3' * yest;
 ymiv3 = zeros(1,length(ywer));
@@ -360,8 +368,8 @@ ypiv3(2) = 440;
 ymiv3(3) = 440;
 ypiv3(3) = 440;
 for i = 4:length(ywer)
-    ymiv3(i) = -1*piv3(1)*ymiv3(i-1) - piv3(2)*ymiv3(i-2) - piv3(3)*ymiv3(i-3) + piv3(4)*uwer(i-1) + piv3(5)*uwer(i-2) + piv3(6)*uwer(i-3);
-    ypiv3(i) = -1*piv3(1)*ywer(i-1) - piv3(2)*ywer(i-2)- piv3(3)*ywer(i-3)  + piv3(4)*uwer(i-1) + piv3(5)*uwer(i-2)+ piv3(6)*uwer(i-3);
+    ymiv3(i) = -1*piv3(1)*ymiv3(i-1) - piv3(2)*ymiv3(i-2) - piv3(3)*ymiv3(i-3) + piv3(4)*uwer(i-1) + piv3(5)*uwer(i-2) + piv3(6)*uwer(i-3) + piv3(7);
+    ypiv3(i) = -1*piv3(1)*ywer(i-1) - piv3(2)*ywer(i-2)- piv3(3)*ywer(i-3)  + piv3(4)*uwer(i-1) + piv3(5)*uwer(i-2)+ piv3(6)*uwer(i-3) + piv3(7);
 end
 figure()
 hold on
@@ -393,56 +401,56 @@ legend('Vpiv','Vmiv');
 xlabel('m')
 ylabel('ln(V)')
 %% Transmitancje
-Gld = tf([-0.0088],[1,-1],Tp);
-Gld2 = tf([-0.121,0.1221],[1,-1.9252,0.9254],Tp);
-Gld3 = tf([-0.119,0.1715,-0.0521],[1,-2.67,2.43362,-0.7628],Tp);
-
-Gid = tf([0.0231],[1,-0.9947],Tp);
-Gid2 = tf([-0.1214,0.1217],[1,-1.8989,0.8990],Tp);
-Gid3 = tf([-0.1196,0.1661,-0.0465],[1,-2.6252,2.3410,-0.7158],Tp);
-
-r1 = roots([1,-1]);
-r2 = roots([1,-1.9252,0.9254]);
-r3 = roots([1,-2.67,2.43362,-0.7628]);
-zer1 = 0;
-zer2 = roots([-0.121,0.1221]);
-zer3 = roots([-0.119,0.1715,-0.0521]);
-
-riv1 = roots([1,-0.9947]);
-riv2 = roots([1,-1.8989,0.8990]);
-riv3 = roots([1,-2.6252,2.3410,-0.7158]);
-zeriv1 = 0;
-zeriv2 = roots([-0.1214,0.1217]);
-zeriv3 = roots([-0.1196,0.1661,-0.0465]);
+% Gld = tf([-0.0088],[1,-1],Tp);
+% Gld2 = tf([-0.121,0.1221],[1,-1.9252,0.9254],Tp);
+% Gld3 = tf([-0.119,0.1715,-0.0521],[1,-2.67,2.43362,-0.7628],Tp);
+% 
+% Gid = tf([0.0231],[1,-0.9947],Tp);
+% Gid2 = tf([-0.1214,0.1217],[1,-1.8989,0.8990],Tp);
+% Gid3 = tf([-0.1196,0.1661,-0.0465],[1,-2.6252,2.3410,-0.7158],Tp);
+% 
+% r1 = roots([1,-1]);
+% r2 = roots([1,-1.9252,0.9254]);
+% r3 = roots([1,-2.67,2.43362,-0.7628]);
+% zer1 = 0;
+% zer2 = roots([-0.121,0.1221]);
+% zer3 = roots([-0.119,0.1715,-0.0521]);
+% 
+% riv1 = roots([1,-0.9947]);
+% riv2 = roots([1,-1.8989,0.8990]);
+% riv3 = roots([1,-2.6252,2.3410,-0.7158]);
+% zeriv1 = 0;
+% zeriv2 = roots([-0.1214,0.1217]);
+% zeriv3 = roots([-0.1196,0.1661,-0.0465]);
 %% Porownanie elastycznosci
-figure()
-hold on
-plot(tn*Tp,gM,'g');
-impulse(Gld)
-impulse(Gld2)
-impulse(Gld3)
-impulse(Gid)
-impulse(Gid2)
-impulse(Gid3)
-axis([0,3,-4,5])
-hold off
-title('Porownanie metody korelacyjnej z metoda LS')
-legend('metoda analizy korealcyjnej','Gls - 2 parametry','Gls2 - 4 parametry','Gls3 - 6 parametrow','Giv - 2 parametry','Giv2 - 4 parametry','Giv3 - 6 parametrow')
-
-
-figure()
-hold on
-semilogx(omega(1:Np), Lm, 'k')
-bode(Gld)
-bode(Gld2)
-bode(Gld3)
-bode(Gid)
-bode(Gid2)
-bode(Gid3)
-semilogx(omega(1:Np),arg,'k')
-hold off
-title('Porownanie charakterystyk Bodego')
-legend('Gls - 2 parametry','Gls2 - 4 parametry','Gls3 - 6 parametrow','Giv - 2 parametry','Giv2 - 4 parametry','Giv3 - 6 parametrow','Metoda analizy widmowej')
+% figure()
+% hold on
+% plot(tn*Tp,gM,'g');
+% impulse(Gld)
+% impulse(Gld2)
+% impulse(Gld3)
+% impulse(Gid)
+% impulse(Gid2)
+% impulse(Gid3)
+% axis([0,3,-4,5])
+% hold off
+% title('Porownanie metody korelacyjnej z metoda LS')
+% legend('metoda analizy korealcyjnej','Gls - 2 parametry','Gls2 - 4 parametry','Gls3 - 6 parametrow','Giv - 2 parametry','Giv2 - 4 parametry','Giv3 - 6 parametrow')
+% 
+% 
+% figure()
+% hold on
+% semilogx(omega(1:Np), Lm, 'k')
+% bode(Gld)
+% bode(Gld2)
+% bode(Gld3)
+% bode(Gid)
+% bode(Gid2)
+% bode(Gid3)
+% semilogx(omega(1:Np),arg,'k')
+% hold off
+% title('Porownanie charakterystyk Bodego')
+% legend('Gls - 2 parametry','Gls2 - 4 parametry','Gls3 - 6 parametrow','Giv - 2 parametry','Giv2 - 4 parametry','Giv3 - 6 parametrow','Metoda analizy widmowej')
 
 figure()
 plot(tmiv,log(Vmiv),tmiv,log(Vm))
@@ -569,30 +577,38 @@ cov4 = sigma4 * inv(z2' * fi3);
 sigma5 = sum(es5.^2)/(length(yest)-4);
 cov5 = sigma5 * inv(z3' * fi4);
 
+% Dodac po jednej kolumnie
+
 pu = [p2(1) - 1.96*sqrt(cov(1,1)),p2(1) + 1.96*sqrt(cov(1,1));
-    p2(2) - 1.96*sqrt(cov(2,2)),p2(2) + 1.96*sqrt(cov(2,2))];
+    p2(2) - 1.96*sqrt(cov(2,2)),p2(2) + 1.96*sqrt(cov(2,2))
+     p2(3) - 1.96*sqrt(cov(3,3)),p2(3) + 1.96*sqrt(cov(3,3))];
 pu2 = [p3(1) - 1.96*sqrt(cov1(1,1)),p3(1) + 1.96*sqrt(cov1(1,1));
     p3(2) - 1.96*sqrt(cov1(2,2)),p3(2) + 1.96*sqrt(cov1(2,2));
     p3(3) - 1.96*sqrt(cov1(3,3)),p3(3) + 1.96*sqrt(cov1(3,3));
-    p3(4) - 1.96*sqrt(cov1(4,4)),p3(4) + 1.96*sqrt(cov1(4,4))];
+    p3(4) - 1.96*sqrt(cov1(4,4)),p3(4) + 1.96*sqrt(cov1(4,4))
+    p3(5) - 1.96*sqrt(cov1(5,5)),p3(5) + 1.96*sqrt(cov1(5,5))];
 pu3 = [p4(1) - 1.96*sqrt(cov2(1,1)),p4(1) + 1.96*sqrt(cov2(1,1));
     p4(2) - 1.96*sqrt(cov2(2,2)),p4(2) + 1.96*sqrt(cov2(2,2));
     p4(3) - 1.96*sqrt(cov2(3,3)),p4(3) + 1.96*sqrt(cov2(3,3));
     p4(4) - 1.96*sqrt(cov2(4,4)),p4(4) + 1.96*sqrt(cov2(4,4));
     p4(5) - 1.96*sqrt(cov2(5,5)),p4(5) + 1.96*sqrt(cov2(5,5));
-    p4(6) - 1.96*sqrt(cov2(6,6)),p4(6) + 1.96*sqrt(cov2(6,6))];
+    p4(6) - 1.96*sqrt(cov2(6,6)),p4(6) + 1.96*sqrt(cov2(6,6))
+     p4(7) - 1.96*sqrt(cov2(7,7)),p4(7) + 1.96*sqrt(cov2(7,7))];
 
 puiv = [piv(1) - 1.96*sqrt(cov3(1,1)),piv(1) + 1.96*sqrt(cov3(1,1));
-    piv(2) - 1.96*sqrt(cov3(2,2)),piv(2) + 1.96*sqrt(cov3(2,2))];
+    piv(2) - 1.96*sqrt(cov3(2,2)),piv(2) + 1.96*sqrt(cov3(2,2))
+    piv(3) - 1.96*sqrt(cov3(3,3)),piv(3) + 1.96*sqrt(cov3(3,3))];
 puiv2 = [piv2(1) - 1.96*sqrt(cov4(1,1)),piv2(1) + 1.96*sqrt(cov4(1,1));
     piv2(2) - 1.96*sqrt(cov4(2,2)),piv2(2) + 1.96*sqrt(cov4(2,2));
     piv2(3) - 1.96*sqrt(cov4(3,3)),piv2(3) + 1.96*sqrt(cov4(3,3));
-    piv2(4) - 1.96*sqrt(cov4(4,4)),piv2(4) + 1.96*sqrt(cov4(4,4))];
+    piv2(4) - 1.96*sqrt(cov4(4,4)),piv2(4) + 1.96*sqrt(cov4(4,4))
+    piv2(5) - 1.96*sqrt(cov4(5,5)),piv2(5) + 1.96*sqrt(cov4(5,5))];
 puiv3 = [piv3(1) - 1.96*sqrt(cov5(1,1)),piv3(1) + 1.96*sqrt(cov5(1,1));
     piv3(2) - 1.96*sqrt(cov5(2,2)),piv3(2) + 1.96*sqrt(cov5(2,2));
     piv3(3) - 1.96*sqrt(cov5(3,3)),piv3(3) + 1.96*sqrt(cov5(3,3));
     piv3(4) - 1.96*sqrt(cov5(4,4)),piv3(4) + 1.96*sqrt(cov5(4,4));
     piv3(5) - 1.96*sqrt(cov5(5,5)),piv3(5) + 1.96*sqrt(cov5(5,5));
-    piv3(6) - 1.96*sqrt(cov5(6,6)),piv3(6) + 1.96*sqrt(cov5(6,6))];
+    piv3(6) - 1.96*sqrt(cov5(6,6)),piv3(6) + 1.96*sqrt(cov5(6,6))
+    piv3(7) - 1.96*sqrt(cov5(7,7)),piv3(7) + 1.96*sqrt(cov5(7,7))];
 
 
